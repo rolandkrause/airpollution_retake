@@ -1,0 +1,400 @@
+---
+title: "Global CO₂ & Greenhouse Gas Emissions"
+subtitle: "Master in Data Science — Tidyverse Programming Project"
+author: "Your Name"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    code-fold: false
+    theme: cosmo
+    self-contained: true
+execute:
+  warning: false
+  message: false
+---
+
+## Overview
+
+In this project you will explore the **Our World in Data CO₂ and Greenhouse Gas Emissions** dataset, a comprehensive record of emissions by country from 1750 to the present day.
+
+**Dataset:** Download the CSV directly from GitHub:
+
+```r
+url <- "https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv"
+```
+
+The codebook (column descriptions) is available at:
+<https://github.com/owid/co2-data/blob/master/owid-co2-codebook.csv>
+
+**Skills practised:**
+
+| Section | Package | Topics |
+|---------|---------|--------|
+| Part 1 — Data Wrangling | `dplyr` | select, filter, mutate, summarise, joins |
+| Part 2 — Tidy Data | `tidyr` | pivot_longer/wider, separate/unite, nesting |
+| Part 3 — Functional Programming | `purrr` | map family, walk, safely/possibly |
+
+**Submission:** Render this document to HTML and submit the `.qmd` and the rendered `.html` file.
+
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+```
+
+---
+
+# Part 1 — Data Wrangling with `dplyr`
+
+## Task 1 — Load and inspect the data
+
+Load the dataset from the URL above using `read_csv()`.
+Perform an initial inspection:
+
+- Print the dimensions (rows × columns).
+- Use `glimpse()` to view column types.
+- Report how many distinct countries and how many distinct years are present.
+- Identify the five columns with the **highest proportion of missing values**.
+
+```{r}
+#| label: task-01
+
+# YOUR CODE HERE
+
+```
+
+> **Hint:** `is.na()`, `colMeans()`, and `n_distinct()` may be useful.
+
+---
+
+## Task 2 — Select and filter
+
+The raw dataset contains both individual countries and aggregate regions (e.g. `"World"`, `"Asia"`, `"High-income countries"`). These aggregates can be identified by a missing `iso_code` or by an `iso_code` that starts with `"OWID"`.
+
+1. Keep only **true countries** (rows where `iso_code` is not `NA` and does not start with `"OWID"`).
+2. Retain only the columns: `country`, `iso_code`, `year`, `population`, `gdp`, `co2`, `co2_per_capita`, `coal_co2`, `gas_co2`, `oil_co2`, `cement_co2`, `land_use_change_co2`, `methane`, `nitrous_oxide`, `total_ghg`, `primary_energy_consumption`.
+3. Further filter to years **1990 and later**.
+4. Save the result as `emissions`.
+
+Report the dimensions of `emissions`.
+
+```{r}
+#| label: task-02
+
+# YOUR CODE HERE
+
+```
+
+> **Hint:** `str_starts()` from `stringr` (part of the tidyverse) can match prefixes.
+
+---
+
+## Task 3 — Feature engineering with `mutate`
+
+Using `emissions`, add the following new columns:
+
+1. `decade` — the decade of each observation, as a numeric value (e.g. 1990, 2000, 2010). *Hint:* integer division `%/%`.
+2. `co2_per_gdp_scaled` — CO₂ (in million tonnes) divided by GDP (in constant 2011 USD), multiplied by 1 000 000 to express tonnes of CO₂ per million USD of GDP. Keep rows where GDP is `NA` but set the new column to `NA` too.
+3. `fossil_co2` — the sum of `coal_co2`, `gas_co2`, and `oil_co2` (treat `NA` as 0 using `replace_na()`).
+4. `fossil_share` — `fossil_co2` divided by `co2` (leave as `NA` where `co2` is 0 or `NA`).
+
+Print the first 10 rows of the four new columns alongside `country` and `year`.
+
+```{r}
+#| label: task-03
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 4 — Grouped summaries
+
+Using the enriched `emissions` tibble from Task 3:
+
+1. Compute, **per country and per decade**, the following summary statistics for `co2`:
+   - total CO₂ (`sum`, ignoring `NA`)
+   - mean CO₂ per capita (`mean` of `co2_per_capita`, ignoring `NA`)
+   - number of years with data (`n()` minus count of `NA`)
+
+2. From the result, find the **top 10 countries** by total CO₂ in the **2010s decade**. Display the table.
+
+3. Compute the **global total CO₂** per year (sum across all countries). Plot a line chart of global CO₂ over time. *(A single `ggplot2` call is sufficient — focus on correctness, not aesthetics.)*
+
+```{r}
+#| label: task-04
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 5 — Ranking and window operations
+
+1. For the **most recent year available in `emissions`**, rank all countries by `co2` (descending). Display the top 15 and the bottom 15 rows, retaining `country`, `year`, `co2`, and `co2_per_capita`.
+
+2. For each country, compute the **year-on-year absolute change** in `co2` using `lag()`. Identify the **single largest single-year increase** and the **single largest single-year decrease** in CO₂ for any country since 1990.
+
+```{r}
+#| label: task-05
+
+# YOUR CODE HERE
+
+```
+
+> **Hint:** Make sure data is arranged by `country`, then `year` before using `lag()`.
+
+---
+
+## Task 6 — Joining tables
+
+A small reference tibble with continent assignments is provided below. It covers the G20 members plus a few others — not every country in `emissions` will match.
+
+```{r}
+#| label: task-06-ref
+
+continent_ref <- tribble(
+  ~iso_code,  ~continent,
+  "USA",      "Americas",
+  "CHN",      "Asia",
+  "IND",      "Asia",
+  "RUS",      "Europe",
+  "JPN",      "Asia",
+  "DEU",      "Europe",
+  "GBR",      "Europe",
+  "FRA",      "Europe",
+  "CAN",      "Americas",
+  "AUS",      "Oceania",
+  "BRA",      "Americas",
+  "ZAF",      "Africa",
+  "SAU",      "Asia",
+  "KOR",      "Asia",
+  "MEX",      "Americas",
+  "IDN",      "Asia",
+  "TUR",      "Europe",
+  "ARG",      "Americas",
+  "NGA",      "Africa",
+  "EGY",      "Africa",
+  "PAK",      "Asia",
+  "IRN",      "Asia",
+  "POL",      "Europe",
+  "UKR",      "Europe",
+  "THA",      "Asia",
+  "ESP",      "Europe",
+  "ITA",      "Europe"
+)
+```
+
+1. Join `continent_ref` to `emissions` so that only rows with a matching continent are kept. Call the result `emissions_g`.
+2. Also create `emissions_all` by joining in a way that keeps **all rows** from `emissions`, with `continent` being `NA` for unmatched countries.
+3. Report how many rows were lost in step 1 vs. step 2.
+4. Using `emissions_g`, compute the **mean `co2_per_capita`** per continent per decade and display the result as a nicely formatted table.
+
+```{r}
+#| label: task-06
+
+# YOUR CODE HERE
+
+```
+
+---
+
+# Part 2 — Tidy Data with `tidyr`
+
+## Task 7 — Reshaping to long format
+
+The dataset currently stores emissions from different sources (coal, gas, oil, cement, land-use change) in separate columns. Reshape `emissions` so that:
+
+- There is a column `source` containing the source name (e.g. `"coal"`, `"gas"`, `"oil"`, `"cement"`, `"land_use_change"`).
+- There is a column `source_co2` containing the corresponding emission value.
+- All other columns are retained as-is.
+
+Call the result `emissions_long`. Print its dimensions and a few rows to confirm correctness.
+
+```{r}
+#| label: task-07
+
+# YOUR CODE HERE
+
+```
+
+> **Hint:** Use `pivot_longer()` with a `names_to` / `values_to` pair and a `names_pattern` or `names_prefix` argument to strip the `_co2` suffix cleanly.
+
+---
+
+## Task 8 — Reshaping back to wide and computing shares
+
+1. Starting from `emissions_long`, pivot back to wide format so that each source has its own column again. Call this `emissions_wide` and verify it matches `emissions` for the five source columns.
+
+2. Still working from `emissions_long`, compute for each country–year combination the **percentage share** of each source in the total `source_co2`. Pivot the shares back to wide format with column names like `coal_share`, `gas_share`, etc. Filter to countries and year 2020 (or the latest available if 2020 is missing) and display the table sorted by `coal_share` descending.
+
+```{r}
+#| label: task-08
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 9 — `separate`, `unite`, and string columns
+
+1. Create a column `country_year` in `emissions` by **uniting** `country` and `year` with a `"|"` separator.
+2. Then **separate** `country_year` back into `country2` and `year2`. Confirm that `country2 == country` and `year2 == year` for all rows.
+3. The `iso_code` column uses 3-letter ISO codes. Using `separate()`, split `iso_code` into individual character columns `c1`, `c2`, `c3` (one letter per column). How many distinct values appear in `c1`? What does this tell you about ISO country code structure?
+
+```{r}
+#| label: task-09
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 10 — Nesting and list columns
+
+1. Using `emissions`, nest the data **by country**, so that each row represents one country and contains a `data` column holding that country's tibble. Call the result `by_country`.
+
+2. Add a column `n_years` containing the number of rows in each country's tibble. What are the five countries with the most observations?
+
+3. Add a column `mean_co2` containing the mean `co2` for each country (ignoring `NA`). Which five countries have the highest mean annual CO₂ since 1990?
+
+4. `unnest()` the result back to a flat tibble and verify you recover the original row count.
+
+```{r}
+#| label: task-10
+
+# YOUR CODE HERE
+
+```
+
+---
+
+# Part 3 — Functional Programming with `purrr`
+
+## Task 11 — Mapping simple functions over nested data
+
+Using the `by_country` tibble from Task 10:
+
+1. Use `map()` to compute the **full range of years** (`range(x$year)`) for each country as a length-2 integer vector. Store the result in a column `year_range`.
+
+2. Use `map_dbl()` to extract the **maximum `co2`** ever recorded for each country.
+
+3. Use `map_int()` to count the **number of non-missing `co2` values** for each country.
+
+4. Display a summary showing each country, its `year_range`, `max_co2`, and `n_valid_co2`, sorted by `max_co2` descending. Print the top 20 rows.
+
+```{r}
+#| label: task-11
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 12 — Fitting linear models inside list columns
+
+For each country in `by_country`, fit a simple linear regression **`co2 ~ year`** to estimate the long-run trend in CO₂ emissions.
+
+1. Write a helper function `fit_trend(df)` that:
+   - Filters to rows where both `co2` and `year` are non-`NA`.
+   - Returns `NA` (a length-1 logical) if fewer than 5 valid observations remain.
+   - Otherwise fits `lm(co2 ~ year, data = df)` and returns the model object.
+
+2. Apply `fit_trend` to every element of the `data` column using `map()`. Store the result in a column `model`.
+
+3. How many countries have `NA` in `model` (i.e. fewer than 5 valid years)?
+
+```{r}
+#| label: task-12
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 13 — Extracting model coefficients
+
+Starting from the `by_country` tibble that now has a `model` column:
+
+1. Use `map_dbl()` with an anonymous function to extract the **slope** (coefficient on `year`) from each fitted model. Set the slope to `NA` for countries where `model` is `NA`. Store results in a column `co2_slope`.
+
+2. Identify the **10 countries with the steepest upward trend** and the **10 countries with the steepest downward trend** in CO₂ since 1990.
+
+3. Interpret: what is the unit of `co2_slope`? What does a slope of `+5` mean in practical terms?
+
+```{r}
+#| label: task-13
+
+# YOUR CODE HERE
+
+```
+
+> **Hint:** `coef(model)["year"]` extracts the named coefficient.
+
+---
+
+## Task 14 — Side effects with `walk`
+
+Using `emissions_g` from Task 6 (the G20+ countries with continent labels):
+
+1. Split the data into a **named list** of tibbles, one per continent, using `split()` or `group_by() |> group_split()`.
+
+2. Use `walk2()` (or `iwalk()`) to save one CSV file per continent into a subdirectory called `data/by_continent/`. The file name should follow the pattern `{continent}.csv` (all lowercase, spaces replaced by underscores).
+
+3. After saving, use `map_dfr()` (or `map()` + `list_rbind()`) to **read all the CSVs back in** and verify the total row count matches `nrow(emissions_g)`.
+
+```{r}
+#| label: task-14
+
+# YOUR CODE HERE
+
+```
+
+---
+
+## Task 15 — Robust iteration with `safely` and `possibly`
+
+Some countries have very sparse or unusual data that may cause a model to fail or produce warnings.
+
+1. Re-run the model fitting from Task 12, but this time wrap `fit_trend` with `safely()`. Apply the safe version using `map()` and store the results in a column `safe_result`. Each element will be a list with `$result` and `$error` components.
+
+2. Use `map()` to extract just the `$error` component. How many countries produced an error? Print the unique error messages.
+
+3. Use `map()` to extract just the `$result` component.
+
+4. Compare the results from `safely()` vs. your original approach in Task 12. Are there any countries that failed with `safely()` but not before (or vice versa)?
+
+5. Redo the extraction using `possibly()` instead, providing `otherwise = NULL`. How does the output differ from `safely()`?
+
+```{r}
+#| label: task-15
+
+# YOUR CODE HERE
+
+```
+
+---
+
+# Submission Checklist
+
+Before submitting, verify the following:
+
+- [ ] All 15 code chunks run without errors when the document is rendered with `quarto render`.
+- [ ] No hard-coded local file paths — the dataset is loaded directly from the URL.
+- [ ] Each task includes at least one printed output (a tibble, a number, or a plot).
+- [ ] The rendered HTML file is self-contained (check `self-contained: true` in the YAML).
+- [ ] Your name is filled in the `author` field of the YAML header.
+
+---
+
+*Dataset source: Hannah Ritchie, Pablo Rosado, Edouard Mathieu et al. (2023). "CO₂ and Greenhouse Gas Emissions." Our World in Data. <https://ourworldindata.org/co2-and-greenhouse-gas-emissions>*
